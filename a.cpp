@@ -61,14 +61,10 @@ struct Output {
     struct Trainer {
         Trainer(Trainer const&) = delete;
         Trainer& operator=(Trainer const&) = delete;
-        Trainer(std::shared_ptr<Input::Trainer> const& trainer) : inputTrainer(trainer), nbLectures(0) {}
+        Trainer(Sadness const& sadness, int nb) : sadnessByMissedLecture(sadness), nbMissedLectures(nb) {}
 
-        const std::shared_ptr<Input::Trainer> inputTrainer;
-        int nbLectures;
-
-        int getNbMissedLectures() const {
-            return inputTrainer->nbDesiredLectures - nbLectures;
-        }
+        const Sadness sadnessByMissedLecture;
+        int nbMissedLectures;
     };
     const Sadness minimalSadness;
 };
@@ -99,52 +95,49 @@ private:
         class TrainerComparator {
         public:
             bool operator()(TrainerPtr const& lhs, TrainerPtr const& rhs) const {
-                return lhs->inputTrainer->sadnessByMissedLecture < rhs->inputTrainer->sadnessByMissedLecture;
+                return lhs->sadnessByMissedLecture < rhs->sadnessByMissedLecture;
             }
         };
         std::priority_queue<TrainerPtr, std::vector<TrainerPtr>, TrainerComparator> data;
     };
 public:
     Output solve(Input const& input) {
-        const auto trainerList = buildTrainerList(input.trainerList);
         auto trainerPicker = TrainerPicker();
-        auto trainersByDay = buildTrainersByDay(input.nbDays, trainerList);
+        auto trainersByDay = buildTrainersByDay(input.nbDays, input.trainerList);
 
         for (int day = 0; day < input.nbDays; ++ day) {
             trainerPicker.multiPush(trainersByDay[day]);
             if (! trainerPicker.isEmpty()) {
-                auto& trainerPtr = trainerPicker.pick();
-                trainerPtr->nbLectures ++;
-                if (trainerPtr->nbLectures == trainerPtr->inputTrainer->nbDesiredLectures) {
+                auto& trainer = *trainerPicker.pick();
+                trainer.nbMissedLectures --;
+                if (trainer.nbMissedLectures == 0) {
                     trainerPicker.pop();
                 }
             }
         }
 
         Sadness sadness = 0;
-        for (auto const& trainer : trainerList) {
-            sadness += trainer->inputTrainer->sadnessByMissedLecture * trainer->getNbMissedLectures();
+        for (auto const& trainerList : trainersByDay) {
+            for (auto const& trainer : trainerList) {
+                sadness += trainer->sadnessByMissedLecture * trainer->nbMissedLectures;
+            }
         }
         return Output{sadness};
     }
 private:
-    std::vector<std::vector<TrainerPtr>> buildTrainersByDay(int nbDays, std::vector<TrainerPtr> const& trainerList) const {
+    std::vector<std::vector<TrainerPtr>>
+    buildTrainersByDay(int nbDays, std::vector<std::shared_ptr<Input::Trainer>> const& trainerList) const {
         std::vector<std::vector<TrainerPtr>> res(nbDays);
         for (auto const& trainer : trainerList) {
-            res[trainer->inputTrainer->arrivalDay].push_back(trainer);
+            res[trainer->arrivalDay].push_back(buildTrainer(trainer));
         }
         return res;
     }
-    std::vector<TrainerPtr> buildTrainerList(std::vector<std::shared_ptr<Input::Trainer>> const& inputTrainerList) const {
-        std::vector<TrainerPtr> trainerList;
-        trainerList.reserve(inputTrainerList.size());
-        std::transform(inputTrainerList.begin(), inputTrainerList.end(),
-            std::back_inserter(trainerList),
-            [](auto const& trainer) {
-                return std::make_shared<Output::Trainer>(trainer);
-            }
+    TrainerPtr buildTrainer(std::shared_ptr<Input::Trainer> const& trainer) const {
+        return std::make_shared<Output::Trainer>(
+            trainer->sadnessByMissedLecture,
+            trainer->nbDesiredLectures
         );
-        return trainerList;
     }
 };
 
