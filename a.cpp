@@ -80,18 +80,18 @@ private:
     using TrainerPtr = std::shared_ptr<Output::Trainer>;
     class TrainerPicker {
     public:
-        void push(TrainerPtr trainerptr) {
-            data.push(trainerptr);
+        void push(TrainerPtr const& trainer) {
+            data.push(trainer);
         }
         void multiPush(std::vector<TrainerPtr> const& trainers) {
-            for (auto trainer : trainers) {
+            for (auto const& trainer : trainers) {
                 push(trainer);
             }
         }
-        TrainerPtr pick() const {
-            if (data.empty()) { return nullptr; }
+        TrainerPtr const& pick() const {
             return data.top();
         }
+        bool isEmpty() const { return data.empty(); }
         void pop() {
             data.pop();
         }
@@ -112,8 +112,8 @@ public:
 
         for (int day = 0; day < input.nbDays; ++ day) {
             trainerPicker.multiPush(trainersByDay[day]);
-            const auto trainerPtr = trainerPicker.pick();
-            if (trainerPtr) {
+            if (! trainerPicker.isEmpty()) {
+                auto& trainerPtr = trainerPicker.pick();
                 trainerPtr->nbLectures ++;
                 if (trainerPtr->nbLectures == trainerPtr->inputTrainer->nbDesiredLectures) {
                     trainerPicker.pop();
@@ -159,5 +159,6 @@ void solve() {
 }
 
 int main() {
+    std::ios::sync_with_stdio(false);
     solve();
 }
