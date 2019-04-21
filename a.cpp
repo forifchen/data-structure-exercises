@@ -73,15 +73,12 @@ void printOutput(Output const& output) {
 }
 class Solver {
 private:
-    using TrainerPtr = std::shared_ptr<Output::Trainer>;
+    using TrainerPtr = std::unique_ptr<Output::Trainer>;
     class TrainerPicker {
     public:
-        void push(TrainerPtr const& trainer) {
-            data.push(trainer);
-        }
-        void multiPush(std::vector<TrainerPtr> const& trainers) {
-            for (auto const& trainer : trainers) {
-                push(trainer);
+        void multiPush(std::vector<TrainerPtr>&& trainers) {
+            for (TrainerPtr& trainer : trainers) {
+                data.push(std::move(trainer));
             }
         }
         TrainerPtr const& pick() const {
@@ -106,7 +103,7 @@ public:
         auto trainersByDay = buildTrainersByDay(input.nbDays, input.trainerList);
 
         for (int day = 0; day < input.nbDays; ++ day) {
-            trainerPicker.multiPush(trainersByDay[day]);
+            trainerPicker.multiPush(std::move(trainersByDay[day]));
             if (! trainerPicker.isEmpty()) {
                 auto& trainer = *trainerPicker.pick();
                 trainer.nbMissedLectures --;
@@ -117,10 +114,10 @@ public:
         }
 
         Sadness sadness = 0;
-        for (auto const& trainerList : trainersByDay) {
-            for (auto const& trainer : trainerList) {
-                sadness += trainer->sadnessByMissedLecture * trainer->nbMissedLectures;
-            }
+        while (! trainerPicker.isEmpty() ) {
+            auto& trainer = *trainerPicker.pick();
+            sadness += trainer.sadnessByMissedLecture * trainer.nbMissedLectures;
+            trainerPicker.pop();
         }
         return Output{sadness};
     }
@@ -134,7 +131,7 @@ private:
         return res;
     }
     TrainerPtr buildTrainer(std::shared_ptr<Input::Trainer> const& trainer) const {
-        return std::make_shared<Output::Trainer>(
+        return std::make_unique<Output::Trainer>(
             trainer->sadnessByMissedLecture,
             trainer->nbDesiredLectures
         );
