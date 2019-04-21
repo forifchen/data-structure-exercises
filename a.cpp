@@ -26,32 +26,33 @@ struct Input {
         const int nbDesiredLectures;
         const Sadness sadnessByMissedLecture;
     };
+    using TrainerPtr = std::unique_ptr<Trainer>;
     const int nbTrainers;
     const int nbDays;
-    const std::vector<std::shared_ptr<Trainer>> trainerList;
+    const std::vector<TrainerPtr> trainerList;
 
-    Input(int nbTrainers, int nbDays, std::vector<std::shared_ptr<Trainer>> const& trainerList) :
+    Input(int nbTrainers, int nbDays, std::vector<TrainerPtr>& trainerList) :
         nbTrainers(nbTrainers), nbDays(nbDays), trainerList(std::move(trainerList)) {}
 };
-std::shared_ptr<Input::Trainer> readTrainer() {
+Input::TrainerPtr readTrainer() {
     auto arrivalDay = read<int>() - 1;
     auto nbDesiredLectures = read<int>();
     auto sadness = read<Sadness>();
-    return std::make_shared<Input::Trainer>(
+    return std::make_unique<Input::Trainer>(
         arrivalDay,
         nbDesiredLectures,
         sadness
     );
 }
-std::shared_ptr<Input> readInput() {
+std::unique_ptr<Input> readInput() {
     auto nbTrainers = read<int>();
     auto nbDays = read<int>();
-    auto trainers = std::vector<std::shared_ptr<Input::Trainer>>{};
+    auto trainers = std::vector<Input::TrainerPtr>{};
     for (int i = 0; i < nbTrainers; ++ i) {
         auto trainer = readTrainer();
-        trainers.push_back(trainer);
+        trainers.push_back(std::move(trainer));
     }
-    return std::make_shared<Input>(
+    return std::make_unique<Input>(
         nbTrainers,
         nbDays,
         trainers
@@ -123,14 +124,14 @@ public:
     }
 private:
     std::vector<std::vector<TrainerPtr>>
-    buildTrainersByDay(int nbDays, std::vector<std::shared_ptr<Input::Trainer>> const& trainerList) const {
+    buildTrainersByDay(int nbDays, std::vector<Input::TrainerPtr> const& trainerList) const {
         std::vector<std::vector<TrainerPtr>> res(nbDays);
         for (auto const& trainer : trainerList) {
             res[trainer->arrivalDay].push_back(buildTrainer(trainer));
         }
         return res;
     }
-    TrainerPtr buildTrainer(std::shared_ptr<Input::Trainer> const& trainer) const {
+    TrainerPtr buildTrainer(Input::TrainerPtr const& trainer) const {
         return std::make_unique<Output::Trainer>(
             trainer->sadnessByMissedLecture,
             trainer->nbDesiredLectures
