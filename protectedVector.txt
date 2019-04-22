@@ -1,0 +1,20 @@
+namespace std {
+    template<typename T>
+    class Vector {
+        public:
+            Vector() {}
+            Vector(Vector const&) = delete;
+            Vector& operator=(Vector const&) = delete;
+            Vector(Vector &&) = default;
+            Vector& operator=(Vector &&) = default;
+            void push_back(T const& x) { data.push_back(x); }
+            auto size() const { return data.size(); }
+            T& operator[](size_t index) { return data[index]; }
+            T const& operator[](size_t index) const { return data[index]; }
+            auto begin() { return data.begin(); }
+            auto end() { return data.end(); }
+        private:
+            std::vector<T> data;
+    };
+}
+
