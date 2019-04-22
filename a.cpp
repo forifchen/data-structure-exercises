@@ -68,7 +68,7 @@ struct Output {
         Trainer(Sadness const& sadness, int nb) : sadnessByMissedLecture(sadness), nbMissedLectures(nb) {}
 
         Sadness sadnessByMissedLecture;
-        int nbMissedLectures;
+        mutable int nbMissedLectures;
     };
     const Sadness minimalSadness;
 };
@@ -122,10 +122,10 @@ public:
             trainerPicker.multiPush(std::move(trainersByDay[day]));
             if (! trainerPicker.isEmpty()) {
                 auto& trainer = trainerPicker.pick();
-                if (trainer.nbMissedLectures > 1) {
-                    trainerPicker.push(TrainerPtr(trainer.sadnessByMissedLecture, trainer.nbMissedLectures - 1));
+                trainer.nbMissedLectures --;
+                if (trainer.nbMissedLectures == 0) {
+                    trainerPicker.pop();
                 }
-                trainerPicker.pop();
             }
         }
         return Output{trainerPicker.getSadness()};
