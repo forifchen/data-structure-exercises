@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <tuple>
 #include <unordered_map>
+#include <memory>
 
 template<typename T>
 T read() {
@@ -9,6 +10,7 @@ T read() {
     std::cin >> t;
     return t;
 }
+using Integer = std::unique_ptr<int>;
 
 namespace input {
     struct Input {
@@ -18,7 +20,7 @@ namespace input {
         Input& operator=(Input &&) = default;
 
         int setSize;
-        std::vector<int> subsetSumList;
+        std::vector<Integer> subsetSumList;
     };
     void generate() {
         std::vector<int> list;
@@ -39,9 +41,9 @@ namespace input {
 template<>
 input::Input read() {
     auto setsize = read<int>();
-    auto list = std::vector<int>{};
+    auto list = std::vector<Integer>{};
     for (int i = 0; i < (1 << setsize); ++ i) {
-        list.push_back(read<int>());
+        list.push_back(std::make_unique<int>(read<int>()));
     }
     return input::Input {
         setsize,
@@ -56,12 +58,12 @@ namespace output {
         Output(Output &&) = default;
         Output& operator=(Output &&) = default;
 
-        std::vector<int> list;
+        std::vector<Integer> list;
     };
     template<typename T>
     void printList(std::vector<T> const& list) {
         for (int i = 0; i < list.size(); ++ i) {
-            std::cout << list[i] << char(i + 1 == list.size()? 10 : 32);
+            std::cout << *list[i] << char(i + 1 == list.size()? 10 : 32);
         }
     }
     void print(Output const& output) {
@@ -69,32 +71,33 @@ namespace output {
     }
 }
 
+
 class Solver {
 public:
     output::Output solve(input::Input && input) {
-        std::vector<int> list;
-        std::vector<int> subsetSumList = input.subsetSumList;
-        std::sort(subsetSumList.begin(), subsetSumList.end());
+        std::vector<Integer> list;
+        std::vector<Integer> subsetSumList = std::move(input.subsetSumList);
+        std::sort(subsetSumList.begin(), subsetSumList.end(), [](auto & lhs, auto& rhs){ return *lhs < *rhs; });
 
         for (int i = 0; i < input.setSize; ++ i) {
             int minElement;
             std::tie(minElement, subsetSumList) = split(std::move(subsetSumList));
-            list.push_back(minElement);
+            list.push_back(std::make_unique<int>(minElement));
         }
-        return output::Output{ list };
+        return output::Output{ std::move(list) };
     }
 private:
-    std::tuple<int, std::vector<int>>
-    split(std::vector<int> &&list) {
-        std::vector<int> reducedList;
-        int minElement = list[1];
+    std::tuple<int, std::vector<Integer>>
+    split(std::vector<Integer> &&list) {
+        std::vector<Integer> reducedList;
+        int minElement = *list[1];
         std::unordered_map<int, int> available;
-        for (int x : list) available[x] ++;
-        for (int x : list) {
-            if (available[x] == 0) continue;
-            reducedList.push_back(x);
-            available[x] --;
-            available[x + minElement] --;
+        for (auto& x : list) available[*x] ++;
+        for (auto& x : list) {
+            if (available[*x] == 0) continue;
+            available[*x] --;
+            available[*x + minElement] --;
+            reducedList.push_back(std::move(x));
         }
         return std::make_tuple(minElement, std::move(reducedList));
     }
