@@ -17,6 +17,7 @@ struct Input {
     struct Trainer {
         Trainer(Trainer const&) = delete;
         Trainer& operator=(Trainer const&) = delete;
+        Trainer(Trainer &&) = default;
         Trainer(int a, int nb, Sadness const& sadness) :
             arrivalDay(a),
             nbDesiredLectures(nb),
@@ -29,16 +30,16 @@ struct Input {
     using TrainerPtr = std::unique_ptr<Trainer>;
     const int nbTrainers;
     const int nbDays;
-    const std::vector<TrainerPtr> trainerList;
+    const std::vector<Trainer> trainerList;
 
-    Input(int nbTrainers, int nbDays, std::vector<TrainerPtr>& trainerList) :
+    Input(int nbTrainers, int nbDays, std::vector<Trainer>&& trainerList) :
         nbTrainers(nbTrainers), nbDays(nbDays), trainerList(std::move(trainerList)) {}
 };
-Input::TrainerPtr readTrainer() {
+Input::Trainer readTrainer() {
     auto arrivalDay = read<int>() - 1;
     auto nbDesiredLectures = read<int>();
     auto sadness = read<Sadness>();
-    return std::make_unique<Input::Trainer>(
+    return Input::Trainer(
         arrivalDay,
         nbDesiredLectures,
         sadness
@@ -47,7 +48,7 @@ Input::TrainerPtr readTrainer() {
 std::unique_ptr<Input> readInput() {
     auto nbTrainers = read<int>();
     auto nbDays = read<int>();
-    auto trainers = std::vector<Input::TrainerPtr>{};
+    auto trainers = std::vector<Input::Trainer>{};
     for (int i = 0; i < nbTrainers; ++ i) {
         auto trainer = readTrainer();
         trainers.push_back(std::move(trainer));
@@ -55,7 +56,7 @@ std::unique_ptr<Input> readInput() {
     return std::make_unique<Input>(
         nbTrainers,
         nbDays,
-        trainers
+        std::move(trainers)
     );
 }
 struct Output {
@@ -124,17 +125,17 @@ public:
     }
 private:
     std::vector<std::vector<TrainerPtr>>
-    buildTrainersByDay(int nbDays, std::vector<Input::TrainerPtr> const& trainerList) const {
+    buildTrainersByDay(int nbDays, std::vector<Input::Trainer> const& trainerList) const {
         std::vector<std::vector<TrainerPtr>> res(nbDays);
         for (auto const& trainer : trainerList) {
-            res[trainer->arrivalDay].push_back(buildTrainer(trainer));
+            res[trainer.arrivalDay].push_back(buildTrainer(trainer));
         }
         return res;
     }
-    TrainerPtr buildTrainer(Input::TrainerPtr const& trainer) const {
+    TrainerPtr buildTrainer(Input::Trainer const& trainer) const {
         return std::make_unique<Output::Trainer>(
-            trainer->sadnessByMissedLecture,
-            trainer->nbDesiredLectures
+            trainer.sadnessByMissedLecture,
+            trainer.nbDesiredLectures
         );
     }
 };
