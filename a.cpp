@@ -27,7 +27,6 @@ struct Input {
         const int nbDesiredLectures;
         const Sadness sadnessByMissedLecture;
     };
-    using TrainerPtr = std::unique_ptr<Trainer>;
     const int nbTrainers;
     const int nbDays;
     const std::vector<Trainer> trainerList;
@@ -63,9 +62,11 @@ struct Output {
     struct Trainer {
         Trainer(Trainer const&) = delete;
         Trainer& operator=(Trainer const&) = delete;
+        Trainer(Trainer &&) = default;
+        Trainer& operator=(Trainer &&) = default;
         Trainer(Sadness const& sadness, int nb) : sadnessByMissedLecture(sadness), nbMissedLectures(nb) {}
 
-        const Sadness sadnessByMissedLecture;
+        Sadness sadnessByMissedLecture;
         int nbMissedLectures;
     };
     const Sadness minimalSadness;
@@ -75,9 +76,12 @@ void printOutput(Output const& output) {
 }
 class Solver {
 private:
-    using TrainerPtr = std::unique_ptr<Output::Trainer>;
+    using TrainerPtr = Output::Trainer;
     class TrainerPicker {
     public:
+        void push(TrainerPtr && trainer) {
+            data.push(std::move(trainer));
+        }
         void multiPush(std::vector<TrainerPtr>&& trainers) {
             for (TrainerPtr& trainer : trainers) {
                 data.push(std::move(trainer));
@@ -94,7 +98,7 @@ private:
         class TrainerComparator {
         public:
             bool operator()(TrainerPtr const& lhs, TrainerPtr const& rhs) const {
-                return lhs->sadnessByMissedLecture < rhs->sadnessByMissedLecture;
+                return lhs.sadnessByMissedLecture < rhs.sadnessByMissedLecture;
             }
         };
         std::priority_queue<TrainerPtr, std::vector<TrainerPtr>, TrainerComparator> data;
@@ -107,17 +111,17 @@ public:
         for (int day = 0; day < input.nbDays; ++ day) {
             trainerPicker.multiPush(std::move(trainersByDay[day]));
             if (! trainerPicker.isEmpty()) {
-                auto& trainer = *trainerPicker.pick();
-                trainer.nbMissedLectures --;
-                if (trainer.nbMissedLectures == 0) {
-                    trainerPicker.pop();
+                auto& trainer = trainerPicker.pick();
+                if (trainer.nbMissedLectures > 1) {
+                    trainerPicker.push(TrainerPtr(trainer.sadnessByMissedLecture, trainer.nbMissedLectures - 1));
                 }
+                trainerPicker.pop();
             }
         }
 
         Sadness sadness = 0;
         while (! trainerPicker.isEmpty() ) {
-            auto& trainer = *trainerPicker.pick();
+            auto& trainer = trainerPicker.pick();
             sadness += trainer.sadnessByMissedLecture * trainer.nbMissedLectures;
             trainerPicker.pop();
         }
@@ -133,7 +137,7 @@ private:
         return res;
     }
     TrainerPtr buildTrainer(Input::Trainer const& trainer) const {
-        return std::make_unique<Output::Trainer>(
+        return Output::Trainer(
             trainer.sadnessByMissedLecture,
             trainer.nbDesiredLectures
         );
