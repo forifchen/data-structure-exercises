@@ -1,8 +1,8 @@
 #include <iostream>
+#include <vector>
 #include <algorithm>
 #include <tuple>
 #include <unordered_map>
-#include <memory>
 
 template<typename T>
 T read() {
@@ -10,7 +10,7 @@ T read() {
     std::cin >> t;
     return t;
 }
-using Integer = std::unique_ptr<int>;
+using Integer = int32_t;
 
 namespace input {
     struct Input {
@@ -43,7 +43,7 @@ input::Input read() {
     auto setsize = read<int>();
     auto list = std::vector<Integer>{};
     for (int i = 0; i < (1 << setsize); ++ i) {
-        list.push_back(std::make_unique<int>(read<int>()));
+        list.push_back(read<int>());
     }
     return input::Input {
         setsize,
@@ -63,7 +63,7 @@ namespace output {
     template<typename T>
     void printList(std::vector<T> const& list) {
         for (int i = 0; i < list.size(); ++ i) {
-            std::cout << *list[i] << char(i + 1 == list.size()? 10 : 32);
+            std::cout << list[i] << char(i + 1 == list.size()? 10 : 32);
         }
     }
     void print(Output const& output) {
@@ -77,12 +77,12 @@ public:
     output::Output solve(input::Input && input) {
         std::vector<Integer> list;
         std::vector<Integer> subsetSumList = std::move(input.subsetSumList);
-        std::sort(subsetSumList.begin(), subsetSumList.end(), [](auto & lhs, auto& rhs){ return *lhs < *rhs; });
+        std::sort(subsetSumList.begin(), subsetSumList.end());
 
         for (int i = 0; i < input.setSize; ++ i) {
             int minElement;
             std::tie(minElement, subsetSumList) = split(std::move(subsetSumList));
-            list.push_back(std::make_unique<int>(minElement));
+            list.push_back(minElement);
         }
         return output::Output{ std::move(list) };
     }
@@ -90,13 +90,13 @@ private:
     std::tuple<int, std::vector<Integer>>
     split(std::vector<Integer> &&list) {
         std::vector<Integer> reducedList;
-        int minElement = *list[1];
+        int minElement = list[1];
         std::unordered_map<int, int> available;
-        for (auto& x : list) available[*x] ++;
+        for (auto& x : list) available[x] ++;
         for (auto& x : list) {
-            if (available[*x] == 0) continue;
-            available[*x] --;
-            available[*x + minElement] --;
+            if (available[x] == 0) continue;
+            available[x] --;
+            available[x + minElement] --;
             reducedList.push_back(std::move(x));
         }
         return std::make_tuple(minElement, std::move(reducedList));
