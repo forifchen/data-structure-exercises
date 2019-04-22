@@ -35,7 +35,8 @@ struct Input {
     Input(int nbTrainers, int nbDays, std::vector<Trainer>&& trainerList) :
         nbTrainers(nbTrainers), nbDays(nbDays), trainerList(std::move(trainerList)) {}
 };
-Input::Trainer readTrainer() {
+template<>
+Input::Trainer read() {
     auto arrivalDay = read<int>() - 1;
     auto nbDesiredLectures = read<int>();
     auto sadness = read<Sadness>();
@@ -45,13 +46,13 @@ Input::Trainer readTrainer() {
         sadness
     );
 }
-Input readInput() {
+template<>
+Input read() {
     auto nbTrainers = read<int>();
     auto nbDays = read<int>();
     auto trainers = std::vector<Input::Trainer>{};
     for (int i = 0; i < nbTrainers; ++ i) {
-        auto trainer = readTrainer();
-        trainers.push_back(std::move(trainer));
+        trainers.push_back(read<Input::Trainer>());
     }
     return Input(
         nbTrainers,
@@ -76,6 +77,23 @@ void printOutput(Output const& output) {
     std::cout << output.minimalSadness << std::endl;
 }
 class Solver {
+public:
+    Output solve(Input const& input) {
+        auto trainerPicker = TrainerPicker();
+        auto trainersByDay = buildTrainersByDay(input.nbDays, input.trainerList);
+
+        for (int day = 0; day < input.nbDays; ++ day) {
+            trainerPicker.multiPush(std::move(trainersByDay[day]));
+            if (! trainerPicker.isEmpty()) {
+                auto& trainer = trainerPicker.pick();
+                trainer.nbMissedLectures --;
+                if (trainer.nbMissedLectures == 0) {
+                    trainerPicker.pop();
+                }
+            }
+        }
+        return Output{trainerPicker.getSadness()};
+    }
 private:
     using TrainerPtr = Output::Trainer;
     class TrainerPicker {
@@ -113,24 +131,6 @@ private:
         };
         std::vector<TrainerPtr> data;
     };
-public:
-    Output solve(Input const& input) {
-        auto trainerPicker = TrainerPicker();
-        auto trainersByDay = buildTrainersByDay(input.nbDays, input.trainerList);
-
-        for (int day = 0; day < input.nbDays; ++ day) {
-            trainerPicker.multiPush(std::move(trainersByDay[day]));
-            if (! trainerPicker.isEmpty()) {
-                auto& trainer = trainerPicker.pick();
-                trainer.nbMissedLectures --;
-                if (trainer.nbMissedLectures == 0) {
-                    trainerPicker.pop();
-                }
-            }
-        }
-        return Output{trainerPicker.getSadness()};
-    }
-private:
     std::vector<std::vector<TrainerPtr>>
     buildTrainersByDay(int nbDays, std::vector<Input::Trainer> const& trainerList) const {
         std::vector<std::vector<TrainerPtr>> res(nbDays);
@@ -151,9 +151,7 @@ void solve() {
     auto nbTests = read<int>();
     auto solver = Solver();
     for (int i = 0; i < nbTests; ++ i) {
-        auto input = readInput();
-        auto output = solver.solve(std::move(input));
-        printOutput(output);
+        printOutput(solver.solve(read<Input>()));
     }
 }
 
