@@ -21,6 +21,21 @@ namespace input {
         int setSize;
         std::vector<int> subsetSumList;
     };
+    void generate() {
+        std::vector<int> list;
+        for (int i = 0; i < 15; ++ i) {
+            list.push_back(std::rand() % 100);
+        }
+        std::cout << list.size() << std::endl;
+        for (int mask = 0; mask < (1 << 15); ++ mask) {
+            int sum = 0;
+            for (int i = 0; i < 15; ++ i) {
+                sum += (mask & (1 << i)) ? list[i] : 0;
+            }
+            std::cout << sum << " ";
+        }
+        std::cout << std::endl;
+    }
 }
 template<>
 input::Input read() {
@@ -59,17 +74,13 @@ class Solver {
 public:
     output::Output solve(input::Input && input) {
         std::vector<int> list;
-        std::vector<int> subsetSumList = std::move(input.subsetSumList);
+        std::vector<int> subsetSumList = input.subsetSumList;
         std::sort(subsetSumList.begin(), subsetSumList.end());
 
         for (int i = 0; i < input.setSize; ++ i) {
             int minElement;
-            std::vector<int> reducedList;
-            std::tie(minElement, reducedList) = split(std::move(subsetSumList)); //todo: avoid above variable
-            output::printList(reducedList);
-
+            std::tie(minElement, subsetSumList) = split(std::move(subsetSumList));
             list.push_back(minElement);
-            subsetSumList = std::move(reducedList);
         }
         return output::Output{ list };
     }
@@ -96,6 +107,9 @@ void _main() {
     for (int i = 0; i < nbTests; ++ i) {
         output::print(solver.solve(read<input::Input>()));
     }
+    if (nbTests > 0) return;
+    std::cout << 1 << std::endl;
+    input::generate();
 }
 
 int main() {
