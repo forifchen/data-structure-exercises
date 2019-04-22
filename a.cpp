@@ -13,6 +13,7 @@ using Sadness = int64_t;
 struct Input {
     Input(Input const&) = delete;
     Input& operator=(Input const&) = delete;
+    Input(Input &&) = default;
 
     struct Trainer {
         Trainer(Trainer const&) = delete;
@@ -29,7 +30,7 @@ struct Input {
     };
     const int nbTrainers;
     const int nbDays;
-    const std::vector<Trainer> trainerList;
+    std::vector<Trainer> trainerList;
 
     Input(int nbTrainers, int nbDays, std::vector<Trainer>&& trainerList) :
         nbTrainers(nbTrainers), nbDays(nbDays), trainerList(std::move(trainerList)) {}
@@ -44,7 +45,7 @@ Input::Trainer readTrainer() {
         sadness
     );
 }
-std::unique_ptr<Input> readInput() {
+Input readInput() {
     auto nbTrainers = read<int>();
     auto nbDays = read<int>();
     auto trainers = std::vector<Input::Trainer>{};
@@ -52,7 +53,7 @@ std::unique_ptr<Input> readInput() {
         auto trainer = readTrainer();
         trainers.push_back(std::move(trainer));
     }
-    return std::make_unique<Input>(
+    return Input(
         nbTrainers,
         nbDays,
         std::move(trainers)
@@ -80,19 +81,28 @@ private:
     class TrainerPicker {
     public:
         void push(TrainerPtr && trainer) {
-            data.push(std::move(trainer));
+            data.push_back(std::move(trainer));
+            std::push_heap(data.begin(), data.end(), TrainerComparator());
         }
         void multiPush(std::vector<TrainerPtr>&& trainers) {
             for (TrainerPtr& trainer : trainers) {
-                data.push(std::move(trainer));
+                push(std::move(trainer));
             }
         }
         TrainerPtr const& pick() const {
-            return data.top();
+            return data.front();
         }
         bool isEmpty() const { return data.empty(); }
         void pop() {
-            data.pop();
+            std::pop_heap(data.begin(), data.end(), TrainerComparator());
+            data.pop_back();
+        }
+        Sadness getSadness() const {
+            Sadness sadness = 0;
+            for (auto const& trainer : data) {
+                sadness += trainer.sadnessByMissedLecture * trainer.nbMissedLectures;
+            }
+            return sadness;
         }
     private:
         class TrainerComparator {
@@ -101,7 +111,7 @@ private:
                 return lhs.sadnessByMissedLecture < rhs.sadnessByMissedLecture;
             }
         };
-        std::priority_queue<TrainerPtr, std::vector<TrainerPtr>, TrainerComparator> data;
+        std::vector<TrainerPtr> data;
     };
 public:
     Output solve(Input const& input) {
@@ -118,14 +128,7 @@ public:
                 trainerPicker.pop();
             }
         }
-
-        Sadness sadness = 0;
-        while (! trainerPicker.isEmpty() ) {
-            auto& trainer = trainerPicker.pick();
-            sadness += trainer.sadnessByMissedLecture * trainer.nbMissedLectures;
-            trainerPicker.pop();
-        }
-        return Output{sadness};
+        return Output{trainerPicker.getSadness()};
     }
 private:
     std::vector<std::vector<TrainerPtr>>
@@ -149,7 +152,7 @@ void solve() {
     auto solver = Solver();
     for (int i = 0; i < nbTests; ++ i) {
         auto input = readInput();
-        auto output = solver.solve(*input);
+        auto output = solver.solve(std::move(input));
         printOutput(output);
     }
 }
