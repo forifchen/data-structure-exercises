@@ -60,7 +60,8 @@ Input read() {
         std::move(trainers)
     );
 }
-struct Output {
+namespace output {
+    struct Output { Sadness minimalSadness; };
     struct Trainer {
         Trainer(Trainer const&) = delete;
         Trainer& operator=(Trainer const&) = delete;
@@ -71,14 +72,42 @@ struct Output {
         Sadness sadnessByMissedLecture;
         mutable int nbMissedLectures;
     };
-    const Sadness minimalSadness;
-};
-void printOutput(Output const& output) {
-    std::cout << output.minimalSadness << std::endl;
+
+    class TrainerComparator {
+    public:
+        bool operator()(Trainer const& lhs, Trainer const& rhs) const {
+            return lhs.sadnessByMissedLecture < rhs.sadnessByMissedLecture;
+        }
+    };
+    void print(Output const& output) {
+        std::cout << output.minimalSadness << std::endl;
+    }
+}
+namespace heap {
+    template<typename T, typename C = std::less<T>>
+    class Picker {
+    public:
+        void push(T&& t) {
+            data.push_back(std::move(t));
+            std::push_heap(data.begin(), data.end(), C());
+        }
+        void multiPush(std::vector<T>&& tList) {
+            for (auto& t : tList) push(std::move(t));
+        }
+        T const& pick() const { return data.front(); }
+        bool isEmpty() const { return data.empty(); }
+        void pop() {
+            std::pop_heap(data.begin(), data.end(), C());
+            data.pop_back();
+        }
+        std::vector<T> const& getData() const { return data; }
+    private:
+        std::vector<T> data;
+    };
 }
 class Solver {
 public:
-    Output solve(Input const& input) {
+    output::Output solve(Input const& input) {
         auto trainerPicker = TrainerPicker();
         auto trainersByDay = buildTrainersByDay(input.nbDays, input.trainerList);
 
@@ -92,54 +121,29 @@ public:
                 }
             }
         }
-        return Output{trainerPicker.getSadness()};
+        return output::Output{getSadness(trainerPicker)};
     }
 private:
-    class TrainerPicker {
-    public:
-        void push(Output::Trainer && trainer) {
-            data.push_back(std::move(trainer));
-            std::push_heap(data.begin(), data.end(), TrainerComparator());
+    using TrainerPicker = heap::Picker<output::Trainer, output::TrainerComparator>;
+
+    Sadness getSadness(TrainerPicker const& trainerPicker) const {
+        Sadness sadness = 0;
+        for (auto const& trainer : trainerPicker.getData()) {
+            sadness += trainer.sadnessByMissedLecture * trainer.nbMissedLectures;
         }
-        void multiPush(std::vector<Output::Trainer>&& trainers) {
-            for (Output::Trainer& trainer : trainers) {
-                push(std::move(trainer));
-            }
-        }
-        Output::Trainer const& pick() const {
-            return data.front();
-        }
-        bool isEmpty() const { return data.empty(); }
-        void pop() {
-            std::pop_heap(data.begin(), data.end(), TrainerComparator());
-            data.pop_back();
-        }
-        Sadness getSadness() const {
-            Sadness sadness = 0;
-            for (auto const& trainer : data) {
-                sadness += trainer.sadnessByMissedLecture * trainer.nbMissedLectures;
-            }
-            return sadness;
-        }
-    private:
-        class TrainerComparator {
-        public:
-            bool operator()(Output::Trainer const& lhs, Output::Trainer const& rhs) const {
-                return lhs.sadnessByMissedLecture < rhs.sadnessByMissedLecture;
-            }
-        };
-        std::vector<Output::Trainer> data;
-    };
-    std::vector<std::vector<Output::Trainer>>
+        return sadness;
+    }
+
+    std::vector<std::vector<output::Trainer>>
     buildTrainersByDay(int nbDays, std::vector<Input::Trainer> const& trainerList) const {
-        std::vector<std::vector<Output::Trainer>> res(nbDays);
+        std::vector<std::vector<output::Trainer>> res(nbDays);
         for (auto const& trainer : trainerList) {
             res[trainer.arrivalDay].push_back(buildTrainer(trainer));
         }
         return res;
     }
-    Output::Trainer buildTrainer(Input::Trainer const& trainer) const {
-        return Output::Trainer(
+    output::Trainer buildTrainer(Input::Trainer const& trainer) const {
+        return output::Trainer(
             trainer.sadnessByMissedLecture,
             trainer.nbDesiredLectures
         );
@@ -150,7 +154,7 @@ void solve() {
     auto nbTests = read<int>();
     auto solver = Solver();
     for (int i = 0; i < nbTests; ++ i) {
-        printOutput(solver.solve(read<Input>()));
+        output::print(solver.solve(read<Input>()));
     }
 }
 
