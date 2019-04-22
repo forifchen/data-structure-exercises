@@ -1,6 +1,5 @@
 #include <iostream>
 #include <algorithm>
-#include <vector>
 #include <tuple>
 #include <unordered_map>
 
@@ -24,7 +23,7 @@ namespace input {
     void generate() {
         std::vector<int> list;
         for (int i = 0; i < 15; ++ i) {
-            list.push_back(std::rand() % 100);
+            list.push_back(std::rand() % 1000000);
         }
         std::cout << list.size() << std::endl;
         for (int mask = 0; mask < (1 << 15); ++ mask) {
@@ -108,8 +107,9 @@ void _main() {
         output::print(solver.solve(read<input::Input>()));
     }
     if (nbTests > 0) return;
-    std::cout << 1 << std::endl;
-    input::generate();
+    std::cout << 50 << std::endl;
+    for (int i = 0; i < 50; ++ i)
+        input::generate();
 }
 
 int main() {
