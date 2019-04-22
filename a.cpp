@@ -95,19 +95,18 @@ public:
         return Output{trainerPicker.getSadness()};
     }
 private:
-    using TrainerPtr = Output::Trainer;
     class TrainerPicker {
     public:
-        void push(TrainerPtr && trainer) {
+        void push(Output::Trainer && trainer) {
             data.push_back(std::move(trainer));
             std::push_heap(data.begin(), data.end(), TrainerComparator());
         }
-        void multiPush(std::vector<TrainerPtr>&& trainers) {
-            for (TrainerPtr& trainer : trainers) {
+        void multiPush(std::vector<Output::Trainer>&& trainers) {
+            for (Output::Trainer& trainer : trainers) {
                 push(std::move(trainer));
             }
         }
-        TrainerPtr const& pick() const {
+        Output::Trainer const& pick() const {
             return data.front();
         }
         bool isEmpty() const { return data.empty(); }
@@ -125,21 +124,21 @@ private:
     private:
         class TrainerComparator {
         public:
-            bool operator()(TrainerPtr const& lhs, TrainerPtr const& rhs) const {
+            bool operator()(Output::Trainer const& lhs, Output::Trainer const& rhs) const {
                 return lhs.sadnessByMissedLecture < rhs.sadnessByMissedLecture;
             }
         };
-        std::vector<TrainerPtr> data;
+        std::vector<Output::Trainer> data;
     };
-    std::vector<std::vector<TrainerPtr>>
+    std::vector<std::vector<Output::Trainer>>
     buildTrainersByDay(int nbDays, std::vector<Input::Trainer> const& trainerList) const {
-        std::vector<std::vector<TrainerPtr>> res(nbDays);
+        std::vector<std::vector<Output::Trainer>> res(nbDays);
         for (auto const& trainer : trainerList) {
             res[trainer.arrivalDay].push_back(buildTrainer(trainer));
         }
         return res;
     }
-    TrainerPtr buildTrainer(Input::Trainer const& trainer) const {
+    Output::Trainer buildTrainer(Input::Trainer const& trainer) const {
         return Output::Trainer(
             trainer.sadnessByMissedLecture,
             trainer.nbDesiredLectures
