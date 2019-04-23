@@ -2,7 +2,6 @@
 #include <vector>
 #include <algorithm>
 #include <tuple>
-#include <unordered_map>
 
 template<typename T>
 T read() {
@@ -71,35 +70,65 @@ namespace output {
     }
 }
 
+namespace heap {
+    template<typename T, typename C = std::less<T>>
+    class Picker {
+    public:
+        void push(T&& t) {
+            data.push_back(std::move(t));
+            std::push_heap(data.begin(), data.end(), C());
+        }
+        void multiPush(std::vector<T>&& tList) {
+            for (auto& t : tList) push(std::move(t));
+        }
+        T const& pick() const { return data.front(); }
+        bool isEmpty() const { return data.empty(); }
+        void pop() {
+            std::pop_heap(data.begin(), data.end(), C());
+            data.pop_back();
+        }
+        std::vector<T> const& getData() const { return data; }
+    private:
+        std::vector<T> data;
+    };
+}
 
 class Solver {
+    using Picker = heap::Picker<int, std::greater<int>>;
 public:
     output::Output solve(input::Input && input) {
         std::vector<Integer> list;
-        std::vector<Integer> subsetSumList = std::move(input.subsetSumList);
+        list.reserve(input.setSize);
+
+        auto& subsetSumList = input.subsetSumList;
         std::sort(subsetSumList.begin(), subsetSumList.end());
 
-        for (int i = 0; i < input.setSize; ++ i) {
-            int minElement;
-            std::tie(minElement, subsetSumList) = split(std::move(subsetSumList));
-            list.push_back(minElement);
+        std::vector<int> currentSubsetSums = {0};
+        currentSubsetSums.reserve(1 << input.setSize);
+
+        Picker sumPicker;
+        sumPicker.push(0);
+
+        for (int sum : subsetSumList) {
+            if (! sumPicker.isEmpty()) {
+                int expectedSum = sumPicker.pick();
+                if (sum == expectedSum) {
+                    sumPicker.pop();
+                    continue;
+                }
+            }
+            int element = sum;
+            list.push_back(element);
+
+            auto size = currentSubsetSums.size();
+            for (int i = 0; i < size; ++ i) {
+                int s = currentSubsetSums[i];
+                currentSubsetSums.push_back(s + element);
+                sumPicker.push(s + element);
+            }
+            sumPicker.pop();
         }
         return output::Output{ std::move(list) };
-    }
-private:
-    std::tuple<int, std::vector<Integer>>
-    split(std::vector<Integer> &&list) {
-        std::vector<Integer> reducedList;
-        int minElement = list[1];
-        std::unordered_map<int, int> available;
-        for (auto& x : list) available[x] ++;
-        for (auto& x : list) {
-            if (available[x] == 0) continue;
-            available[x] --;
-            available[x + minElement] --;
-            reducedList.push_back(std::move(x));
-        }
-        return std::make_tuple(minElement, std::move(reducedList));
     }
 };
 
