@@ -145,5 +145,6 @@ void _main() {
 }
 
 int main() {
+    std::ios::sync_with_stdio(false);
     _main();
 }
