@@ -2,11 +2,11 @@ namespace heap {
     template<typename T, typename C = std::less<T>>
     class Picker {
     public:
-        void push(T&& t) {
+        void push(T t) {
             data.push_back(std::move(t));
             std::push_heap(data.begin(), data.end(), C());
         }
-        void multiPush(std::vector<T>&& tList) {
+        void multiPush(std::vector<T> tList) {
             for (auto& t : tList) push(std::move(t));
         }
         T const& pick() const { return data.front(); }
