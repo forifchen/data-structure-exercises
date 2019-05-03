@@ -36,15 +36,16 @@ namespace input
 }
 namespace output
 {
+    void printList(std::vector<int>& list) {
+        if (list.empty()) return;
+        std::cout << list.front();
+        for (int i = 1; i < list.size(); ++ i)
+            std::cout << " " << list[i];
+        std::cout << std::endl;
+    }
     struct Output
     {
-        std::vector<int> list;
         void print() {
-            if (list.empty()) return;
-            std::cout << list.front();
-            for (int i = 1; i < list.size(); ++ i)
-                std::cout << " " << list[i];
-            std::cout << std::endl;
         }
     };
     
