@@ -1,8 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <numeric>
-#include <functional>
 
 void _main();
 
@@ -45,7 +43,9 @@ namespace output
     }
     struct Output
     {
+        int res;
         void print() {
+            std::cout << res << std::endl;
         }
     };
     
@@ -53,15 +53,18 @@ namespace output
 
 class Solver
 {
+    input::Input input;
 public:
-    output::Output solve(input::Input const& input) {
+    output::Output solve() {
+        input.read();
+        return {  };
     }
 };
 
 void _main() {
     auto nbTests = input::read<int>();
     for (int i = 0; i < nbTests; ++ i) {
-        Solver().solve(input::read()).print();
+        Solver().solve().print();
     }
 }
 
