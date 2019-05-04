@@ -50,7 +50,7 @@ namespace output
 }
 
 namespace bfs {
-    template<class Node, class Marker>
+    template<class Node>
     class BFS {
     public:
         bool findPath(Node from, Node to) {
@@ -83,7 +83,7 @@ bool operator==(Cell const& lhs, Cell const& rhs) {
     return lhs.x == rhs.x && lhs.y == rhs.y;
 }
 using Marker = std::vector<std::vector<bool>>;
-class BFS final : public bfs::BFS<Cell, Marker> {
+class BFS final : public bfs::BFS<Cell> {
 public:
     BFS(std::vector<std::string> const& grid) {
         int n = grid.size(), m = grid.front().size();
