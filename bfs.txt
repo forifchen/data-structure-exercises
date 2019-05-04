@@ -1,0 +1,26 @@
+namespace bfs {
+    template<class Node>
+    class BFS {
+    public:
+        bool findPath(Node from, Node to) {
+            std::queue<Node> nodeList;
+            mark(from);
+            nodeList.push(std::move(from));
+            while (! nodeList.empty()) {
+                auto node = nodeList.front();
+                nodeList.pop();
+                if (node == to) return true;
+                for (auto& neighbor: getNeighbors(node)) {
+                    if (isMarked(neighbor)) continue;
+                    mark(neighbor);
+                    nodeList.push(std::move(neighbor));
+                }
+            }
+            return false;
+        }
+    private:
+        virtual void mark(Node const&) = 0;
+        virtual bool isMarked(Node const&) = 0;
+        virtual std::vector<Node> getNeighbors(Node const&) = 0;
+    };
+}
