@@ -132,6 +132,17 @@ class Solver
     bool comparePopulations(int lhs, int rhs) const {
         return input.populationList[lhs] < input.populationList[rhs];
     }
+    int capitalNotIn(std::vector<int> const& infectedList, std::vector<int>& removed) {
+        for (int i = 0; i < infectedList.size(); ++ i) {
+            int infectedId = infectedList[i];
+            int expectedId = picker.pick();
+            if (infectedId != expectedId) return expectedId;
+            picker.pop();
+            removed.push_back(expectedId);
+        }
+        if (!picker.isEmpty()) return picker.pick();
+        return -1;
+    }
 
     int computeCapitalInfecting(int cityId) {
         std::vector<int> infectedList = input.tree.getNeighbors(cityId);
@@ -139,18 +150,7 @@ class Solver
 
         std::sort(infectedList.rbegin(), infectedList.rend(), comp);
         std::vector<int> removed;
-        int res = -1;
-        for (int i = 0; i < infectedList.size(); ++ i) {
-            int infectedId = infectedList[i];
-            int expectedId = picker.pick();
-            picker.pop();
-            removed.push_back(expectedId);
-            if (infectedId != expectedId) {
-                res = expectedId;
-                break;
-            }
-        }
-        if (res == -1 && !picker.isEmpty()) res = picker.pick();
+        int res = capitalNotIn(infectedList, removed);
         picker.multiPush(removed);
         return res;
     }
