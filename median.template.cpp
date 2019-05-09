@@ -31,6 +31,17 @@ namespace heap {
         T const& compute() {
             return lower.pick();
         }
+        void pop() {
+            if (size % 2 == 1) {
+                lower.pop();
+            } else {
+                lower.pop();
+                auto min = upper.pick();
+                upper.pop();
+                lower.push(min);
+            }
+            size --;
+        }
         void push(T const& node) {
             if (size % 2 == 1) {
                 if (not lower.isEmpty() and node < lower.pick()) {
